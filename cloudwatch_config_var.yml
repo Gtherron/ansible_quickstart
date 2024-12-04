@@ -1,0 +1,49 @@
+#Storing Variables in the vars Section of the Playbook
+
+    #In this method, you define the variables globally in the playbook's vars section.
+    #Ansible Playbook vars: Use this if the variables are the same across all hosts.
+
+---
+- name: Configure CloudWatch Agent with Custom Credentials
+  hosts: all
+  become: yes
+  vars:
+    cloudwatch_logs_credentials_profile: "default"
+    cloudwatch_logs_access_key: "YOUR_GLOBAL_ACCESS_KEY"
+    cloudwatch_logs_secret_key: "YOUR_GLOBAL_SECRET_KEY"
+    install_config_path: "/etc/cloudwatch"
+    http_proxy: "http://proxy.example.com:8080"
+    https_proxy: "https://proxy.example.com:8080"
+    no_proxy: "localhost,127.0.0.1"
+    ca_bundle_file_path: "/etc/ssl/certs/ca-bundle.crt"
+
+  tasks:
+    - name: Create CloudWatch configuration directory
+      file:
+        path: "{{ install_config_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create CloudWatch credentials file
+      copy:
+        dest: "{{ install_config_path }}/cloudwatch_credentials"
+        content: |
+          [profile {{ cloudwatch_logs_credentials_profile }}]
+          aws_access_key_id = {{ cloudwatch_logs_access_key }}
+          aws_secret_access_key = {{ cloudwatch_logs_secret_key }}
+        mode: '0600'
+
+    - name: Configure HTTP Proxy settings
+      copy:
+        dest: "/etc/environment"
+        content: |
+          HTTP_PROXY={{ http_proxy }}
+          HTTPS_PROXY={{ https_proxy }}
+          NO_PROXY={{ no_proxy }}
+        mode: '0644'
+
+    - name: Configure CA bundle path
+      lineinfile:
+        path: "/etc/awslogs/awslogs.conf"
+        line: "ca_bundle_path = {{ ca_bundle_file_path }}"
+        create: yes

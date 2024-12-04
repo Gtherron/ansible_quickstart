@@ -1,0 +1,37 @@
+---
+- name: Configure AWS CloudWatch credentials
+  hosts: all
+  become: yes
+  vars:
+    cloudwatch_logs_credentials_profile: "default"  # Example value
+    cloudwatch_logs_access_key: "your-access-key"    # Replace with the actual access key
+    cloudwatch_logs_secret_key: "your-secret-key"    # Replace with the actual secret key
+    credentials_file_path: "/etc/aws/credentials"    # Path to store the AWS credentials
+
+  tasks:
+    - name: Ensure the credentials directory exists
+      file:
+        path: "{{ credentials_file_path | dirname }}"
+        state: directory
+        mode: '0755'
+
+    - name: Configure AWS credentials using Jinja2 template
+      template:
+        src: templates/cloudwatch_credentials.j2
+        dest: "{{ credentials_file_path }}"
+        owner: root
+        group: root
+        mode: '0600'
+
+# Variables:
+
+    #cloudwatch_logs_credentials_profile: This would replace pillar['cloudwatch-logs']['credentials-profile'].
+    #cloudwatch_logs_access_key: This replaces pillar['cloudwatch-logs']['access-key'].
+    #cloudwatch_logs_secret_key: This replaces pillar['cloudwatch-logs']['secret-key'].
+    #credentials_file_path: This is where the credentials will be stored (e.g., /etc/aws/credentials).
+
+#Tasks:
+
+    #Ensure the credentials directory exists: This ensures that the directory where the credentials file will be stored 
+    #exists.Configure AWS credentials: This uses the template module to render the Jinja2 template, 
+    #replacing the variables with the correct values and saving it to the specified file path.

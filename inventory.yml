@@ -1,0 +1,47 @@
+
+## variables required
+##cloudwatch_logs.credentials_profile
+##install_config_path
+##proxy.http_proxy, proxy.https_proxy, proxy.no_proxy (if using proxy)
+##ssl.ca_bundle_file_path (if using SSL)
+## Ansible Inventory (inventory.yml)
+
+all:
+  hosts:
+    host1:
+      ansible_host: 192.168.1.10
+      cloudwatch_logs_credentials_profile: "default"
+      install_config_path: "/etc/cloudwatch"
+      http_proxy: "http://proxy.example.com:8080"
+      https_proxy: "https://proxy.example.com:8080"
+      no_proxy: "localhost,127.0.0.1"
+      ca_bundle_file_path: "/etc/ssl/certs/ca-bundle.crt"
+    
+    host2:
+      ansible_host: 192.168.1.11
+      cloudwatch_logs_credentials_profile: "default"
+      install_config_path: "/etc/cloudwatch"
+      http_proxy: "http://proxy.example.com:8080"
+      https_proxy: "https://proxy.example.com:8080"
+      no_proxy: "localhost,127.0.0.1"
+      ca_bundle_file_path: "/etc/ssl/certs/ca-bundle.crt"
+    
+    host3:
+      ansible_host: 192.168.1.12
+      cloudwatch_logs_credentials_profile: "default"
+      install_config_path: "/etc/cloudwatch"
+      http_proxy: "http://proxy.example.com:8080"
+      https_proxy: "https://proxy.example.com:8080"
+      no_proxy: "localhost,127.0.0.1"
+      ca_bundle_file_path: "/etc/ssl/certs/ca-bundle.crt"
+
+## Explanation:
+    Hosts:
+        host1, host2, and host3 are the three hosts, each with an IP address (replace 192.168.1.x with your actual 
+          host IP addresses or names).
+    Variables:
+        cloudwatch_logs_credentials_profile: Defines the profile used for CloudWatch logs credentials.
+        install_config_path: Path where CloudWatch agent or related configs should be installed.
+        http_proxy and https_proxy: Proxy URLs used for HTTP and HTTPS traffic.
+        no_proxy: Specifies domains that should bypass the proxy.
+        ca_bundle_file_path: Path to the CA bundle file for SSL certificate verification.

@@ -1,0 +1,73 @@
+# This common-config is used to configure items used for both ssm and cloudwatch access
+## Configuration for shared credential.
+## Default credential strategy will be used if it is absent here:
+##      Instance role is used for EC2 case by default.
+##      AmazonCloudWatchAgent profile is used for onPremise case by default.
+## [credentials]
+##   shared_credential_profile = "{{ pillar['cloudwatch-logs']['credentials-profile'] }}"
+##   shared_credential_file = "{{ install_config_path }}/evo_credentials"
+## Configuration for proxy.
+## System-wide environment-variable will be read if it is absent here.
+## i.e. HTTP_PROXY/http_proxy; HTTPS_PROXY/https_proxy; NO_PROXY/no_proxy
+## Note: system-wide environment-variable is not accessible when using ssm run-command.
+## Absent in both here and environment-variable means no proxy will be used.
+# [proxy]
+#    http_proxy = "{http_url}"
+#    https_proxy = "{https_url}"
+#    no_proxy = "{domain}"
+
+# [ssl]
+#    ca_bundle_path = "{ca_bundle_file_path}"
+
+
+
+common-config_ssm_cloudwatch_access
+
+---
+- name: Configure CloudWatch and SSM settings
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure the shared credentials file exists
+      copy:
+        content: |
+          [credentials]
+          shared_credential_profile = "{{ cloudwatch_logs.credentials_profile }}"
+          shared_credential_file = "{{ install_config_path }}/evo_credentials"
+        dest: "{{ install_config_path }}/evo_credentials"
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Configure proxy settings (if needed)
+      block:
+        - name: Ensure proxy configuration exists
+          copy:
+            content: |
+              [proxy]
+              http_proxy = "{{ proxy.http_proxy }}"
+              https_proxy = "{{ proxy.https_proxy }}"
+              no_proxy = "{{ proxy.no_proxy }}"
+            dest: "{{ install_config_path }}/proxy.conf"
+            owner: root
+            group: root
+            mode: '0600'
+      when: proxy is defined
+
+    - name: Configure SSL settings (if needed)
+      block:
+        - name: Ensure SSL CA bundle file is present
+          copy:
+            content: |
+              [ssl]
+              ca_bundle_path = "{{ ssl.ca_bundle_file_path }}"
+            dest: "{{ install_config_path }}/ssl.conf"
+            owner: root
+            group: root
+            mode: '0600'
+      when: ssl is defined
+
+##Credentials Configuration: It writes the shared credentials to a file.
+##The playbook writes them to the specified path.
+##Proxy Configuration (optional): If proxy settings are defined in the variables (as in the comments), 
+##SSL Configuration (optional): If SSL settings are needed, it writes them to a file.

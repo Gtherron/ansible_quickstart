@@ -1,0 +1,114 @@
+---
+- name: Install AWS CloudWatch Agent
+  hosts: all
+  become: yes
+  vars:
+    cloudwatch_agent_url_base: "https://s3.amazonaws.com/amazoncloudwatch-agent"
+  tasks:
+    - name: Ensure required tools are installed (curl or wget)
+      package:
+        name:
+          - curl
+          - wget
+        state: present
+
+    - name: Detect OS Family
+      set_fact:
+        os_family: "{{ ansible_os_family }}"
+        os_distribution: "{{ ansible_distribution }}"
+
+    - name: Detect architecture
+      set_fact:
+        arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else '386' }}"
+
+    - name: Set the package type based on the OS family
+      set_fact:
+        package_type: "{{ 'deb' if os_family == 'Debian' else 'rpm' }}"
+        dist: >-
+          {% if os_distribution == 'Amazon' %}
+            amazon_linux
+          {% elif os_distribution == 'CentOS' %}
+            centos
+          {% elif os_distribution in ['RedHat', 'Fedora'] %}
+            redhat
+          {% elif os_distribution == 'Ubuntu' %}
+            ubuntu
+          {% elif os_distribution == 'Debian' %}
+            debian
+          {% else %}
+            unknown
+          {% endif %}
+
+    - name: Fail if unsupported OS is detected
+      fail:
+        msg: "Unsupported OS: {{ os_distribution }}"
+      when: dist == "unknown"
+
+    - name: Set CloudWatch agent package URL
+      set_fact:
+        cloudwatch_agent_url: "{{ cloudwatch_agent_url_base }}/{{ dist }}/{{ arch }}/latest/amazon-cloudwatch-agent.{{ package_type }}"
+
+    - name: Download CloudWatch agent
+      get_url:
+        url: "{{ cloudwatch_agent_url }}"
+        dest: "/tmp/amazon-cloudwatch-agent.{{ package_type }}"
+        mode: '0644'
+      register: download_result
+
+    - name: Fail if CloudWatch agent download fails
+      fail:
+        msg: "Could not download the CloudWatch agent from {{ cloudwatch_agent_url }}"
+      when: not download_result.changed
+
+    - name: Install CloudWatch agent on Debian/Ubuntu
+      apt:
+        deb: "/tmp/amazon-cloudwatch-agent.deb"
+      when:
+        - package_type == "deb"
+        - os_family == "Debian"
+
+    - name: Install CloudWatch agent on RedHat/CentOS/Fedora/Amazon Linux
+      yum:
+        name: "/tmp/amazon-cloudwatch-agent.rpm"
+        state: present
+        disable_gpg_check: yes
+      when:
+        - package_type == "rpm"
+        - os_family != "Debian"
+
+    - name: Verify CloudWatch agent is installed
+      command: which amazon-cloudwatch-agent-ctl
+      register: agent_installed
+      failed_when: agent_installed.rc != 0
+      ignore_errors: false
+
+
+## Explanation of the Playbook:
+
+    #Install Required Tools (curl or wget): The playbook ensures that either curl or wget is installed on the 
+    #system before proceeding with downloading the CloudWatch agent.
+
+    #Detect OS Family and Architecture:
+        #os_family: Uses Ansible's ansible_os_family fact to detect whether the system is Debian/Ubuntu or RedHat-based.
+        #arch: Detects whether the architecture is x86_64 (amd64) or 32-bit.
+
+    #Set Package Type and OS Distribution: Based on the detected OS family and distribution, the playbook sets the 
+        #appropriate package type (deb for Debian/Ubuntu, rpm for RedHat/CentOS).
+
+    #Download CloudWatch Agent:
+        #Uses the get_url module to download the CloudWatch agent from the appropriate URL based on the OS and architecture.
+
+    #Install the Agent:
+        #For Debian-based systems, it uses the apt module with deb packages.
+        #For RedHat-based systems, it uses the yum module with rpm packages.
+
+    #Verify Installation: After installation, the playbook checks if the amazon-cloudwatch-agent-ctl binary 
+        #is available to ensure that the CloudWatch agent was successfully installed.
+
+#Customization:
+
+    #Variables:
+        #cloudwatch_agent_url_base can be changed to point to different versions or custom repositories if necessary.
+    #Error Handling:
+        #If the download or installation fails, the playbook will stop and return the error, similar to how the bash 
+        #script’s die() function works.
